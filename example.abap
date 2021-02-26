@@ -59,7 +59,7 @@ INITIALIZATION .
     test     TYPE i,
     receiver TYPE REF TO lcl_receiver,
     timer    TYPE REF TO cl_gui_timer,
-    interval TYPE i VALUE 5,
+    interval TYPE i VALUE 3,
     counter  TYPE i.
 
 
@@ -100,9 +100,10 @@ CLASS lcl_receiver DEFINITION.
   PRIVATE SECTION .
 
     DATA:
-      gt_out TYPE tab_out .
+      go_salv_table TYPE REF TO cl_salv_table,
+      gt_out        TYPE tab_out.
 
-    METHODS refresh_data .
+    METHODS get_data .
 
 ENDCLASS.
 
@@ -115,7 +116,7 @@ CLASS lcl_receiver IMPLEMENTATION.
     ADD interval TO counter.
 *    MESSAGE s000(>0) WITH sy-uzeit .
 
-    me->refresh_data( ) .
+    me->get_data( ) .
     CALL METHOD timer->run.
 
   ENDMETHOD.
@@ -123,28 +124,35 @@ CLASS lcl_receiver IMPLEMENTATION.
 
   METHOD show_data .
 
-    DATA:
-      lo_salv_table TYPE REF TO cl_salv_table,
-      lo_display    TYPE REF TO cl_salv_display_settings.
-
-
     " Primeira chamada do method
     IF ( lines( me->gt_out ) EQ 0 ) .
-      me->refresh_data( ) .
+      me->get_data( ) .
     ENDIF .
 
-    cl_salv_table=>factory( IMPORTING r_salv_table = lo_salv_table
+    cl_salv_table=>factory( IMPORTING r_salv_table = me->go_salv_table
                             CHANGING  t_table      = me->gt_out ) .
 
-    lo_salv_table->display( ) .
+    me->go_salv_table->display( ) .
+
 
   ENDMETHOD .
 
 
-  METHOD refresh_data .
+  METHOD get_data .
 
     me->gt_out = VALUE #( ( uname = sy-uname
                             uzeit = sy-uzeit ) ) .
+
+    IF ( me->go_salv_table IS BOUND ) .
+
+      me->go_salv_table->refresh(
+*      EXPORTING
+*        s_stable     = s_stable
+refresh_mode = if_salv_c_refresh=>soft
+) .
+
+    ENDIF .
+
 
   ENDMETHOD .
 
